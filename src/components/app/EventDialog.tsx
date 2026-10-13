@@ -616,7 +616,6 @@ export function EventDialog({
   <SelectItem value="meeting">Meeting</SelectItem>
   <SelectItem value="mobile_serbisyo_caravan">Mobile Serbisyo Caravan</SelectItem>
   <SelectItem value="national_data_review">National Data Review</SelectItem>
-  <SelectItem value="official_business">Official Business</SelectItem>
   <SelectItem value="one_stop_shop">One Stop Shop</SelectItem>
   <SelectItem value="on_leave">On Leave</SelectItem>
   <SelectItem value="personal">Personal</SelectItem>
@@ -687,8 +686,8 @@ export function EventDialog({
                   <select value={reportCategory} onChange={e => setReportCategory(e.target.value)} disabled={!canEditReport}
                     className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-60">
                     <option value="">Select report type…</option>
-                    <option value="pl">P&amp;L</option>
-                    <option value="info_dissemination">Info Dissemination</option>
+                    <option value="pl">Partnership and Linkage (P&amp;L)</option>
+                    <option value="info_dissemination">Information Dissemination</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">

@@ -137,7 +137,7 @@ function Reports() {
                     <h3 className="font-semibold text-base">{e.title}</h3>
                     {r?.category && (
                       <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                        {r.category === "pl" ? "P&L" : "Info Dissemination"}
+                        {r.category === "pl" ? "Partnership and Linkage (P&L)" : "Information Dissemination"}
                       </span>
                     )}
                   </div>

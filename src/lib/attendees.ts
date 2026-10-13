@@ -5,9 +5,9 @@ export const ATTENDEES = [
   { value: "RD",    label: "RD",    dot: "#ef4444", bg: "#fef2f2", text: "#b91c1c", border: "#fca5a5", hex: "#ef4444" },
   { value: "ORD",   label: "ORD",   dot: "#ec4899", bg: "#fdf2f8", text: "#be185d", border: "#f9a8d4", hex: "#ec4899" },
   { value: "JBT",   label: "JBT",   dot: "#eab308", bg: "#fefce8", text: "#854d0e", border: "#fde047", hex: "#eab308" },
-  { value: "SOCD",  label: "SOCD",  dot: "#22c55e", bg: "#f0fdf4", text: "#15803d", border: "#86efac", hex: "#22c55e" },
   { value: "CRASD", label: "CRASD", dot: "#3b82f6", bg: "#eff6ff", text: "#1d4ed8", border: "#93c5fd", hex: "#3b82f6" },
   { value: "SBB",   label: "SBB",   dot: "#f97316", bg: "#fff7ed", text: "#c2410c", border: "#fdba74", hex: "#f97316" },
+  { value: "SOCD",  label: "SOCD",  dot: "#22c55e", bg: "#f0fdf4", text: "#15803d", border: "#86efac", hex: "#22c55e" },
 ] as const;
 
 /** Management tags that can respond (RSVP) to events they are invited to */
@@ -75,11 +75,47 @@ export const STAFF: StaffMember[] = [
 // Staff pulled from the profiles table at runtime (e.g. users assigned to a unit in Manage Units)
 const dynamicStaff = new Map<string, StaffMember>();
 const unitOverride = new Map<string, StaffMember["department"]>();
+const abbrevOverride = new Map<string, string>();
+const nameWords = (s: string) => s.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter(w => w.length > 1).sort().join(" ");
+const NAME_SUFFIX = /^(jr|sr|ii|iii|iv)\.?$/i;
+const SURNAME_PARTICLES = ["de", "del", "dela", "delos", "la", "los", "san", "van", "von"];
+const MANAGEMENT_SURNAMES = ["tuason", "balagbis", "aves"];
+
+/** "Genelyn B. Laspobres" / "Laspobres, Genelyn B." -> "Laspobres, Genelyn B." */
+function normalizeFullName(full: string): string {
+  const name = full.trim();
+  if (!name || name.includes(",")) return name;
+  const t = name.split(/\s+/).filter(w => !NAME_SUFFIX.test(w));
+  if (t.length < 2) return name;
+  const n = SURNAME_PARTICLES.includes(t[t.length - 2].toLowerCase()) && t.length > 2 ? 2 : 1;
+  return `${t.slice(-n).join(" ")}, ${t.slice(0, -n).join(" ")}`;
+}
+
+const POSITION_ABBREV = new Map<string, string>();
+STAFF.forEach(x => x.abbrev && POSITION_ABBREV.set(x.position.toLowerCase(), x.abbrev));
+const ROMAN = /^(I|II|III|IV|V|VI|VII|VIII|IX|X)$/;
+function positionAbbrev(position: string): string {
+  const p = position.trim();
+  if (!p) return "";
+  const known = POSITION_ABBREV.get(p.toLowerCase());
+  if (known) return known;
+  const words = p.split(/\s+/);
+  const grade = ROMAN.test(words[words.length - 1]) ? words.pop()! : "";
+  const initials = words.filter(w => /^[A-Za-z]/.test(w)).map(w => w[0].toUpperCase()).join("");
+  return [initials, grade].filter(Boolean).join(" ");
+}
+
 export function registerStaff(m: StaffMember) {
   const key = m.email.toLowerCase();
-  const hit = STAFF.find(x => x.email.toLowerCase() === key);
-  if (hit) unitOverride.set(key, m.department);   // DB unit wins over the hardcoded department
-  else dynamicStaff.set(m.id, m);
+  const hit = STAFF.find(x => x.email.toLowerCase() === key)
+    ?? STAFF.find(x => m.fullName && nameWords(x.fullName) === nameWords(m.fullName));
+  if (hit) {
+    unitOverride.set(hit.email.toLowerCase(), m.department);   // DB unit wins over the hardcoded department
+    if (!hit.abbrev && m.position) abbrevOverride.set(hit.email.toLowerCase(), positionAbbrev(m.position));
+    return;
+  }
+  if (MANAGEMENT_SURNAMES.some(s => `${m.fullName} ${m.email}`.toLowerCase().includes(s))) return;   // management has its own tag
+  dynamicStaff.set(m.id, { ...m, fullName: normalizeFullName(m.fullName), abbrev: m.abbrev || positionAbbrev(m.position) });
 }
 
 /** Loads profiles.unit from the DB so Manage Units assignments override hardcoded departments (colors, pickers). */
@@ -94,14 +130,14 @@ export async function loadUnitOverrides(): Promise<void> {
 const effectiveDept = (x: StaffMember) => unitOverride.get(x.email.toLowerCase()) ?? x.department;
 
 export function staffByDept(dept: "SOCD" | "CRASD" | "ORD"): StaffMember[] {
-  const base = STAFF.filter(x => effectiveDept(x) === dept).map(x => ({ ...x, department: dept }));
+  const base = STAFF.filter(x => effectiveDept(x) === dept).map(x => ({ ...x, department: dept, abbrev: x.abbrev || abbrevOverride.get(x.email.toLowerCase()) || "" }));
   const extra = [...dynamicStaff.values()].filter(x => x.department === dept);
   return [...base, ...extra];
 }
 
 export function findStaff(id: string): StaffMember | undefined {
   const hit = STAFF.find(x => x.id === id) ?? dynamicStaff.get(id);
-  if (hit) return { ...hit, department: effectiveDept(hit) };
+  if (hit) return { ...hit, department: effectiveDept(hit), abbrev: hit.abbrev || abbrevOverride.get(hit.email.toLowerCase()) || "" };
   // Fallback for "staff:db-<email>" ids from profiles not yet loaded into the registry
   if (id.startsWith("staff:db-")) {
     const email = id.slice(9);
