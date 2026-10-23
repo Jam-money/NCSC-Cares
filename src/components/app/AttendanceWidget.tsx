@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Clock, LogIn, Coffee, LogOut, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 // ── Time window constants (minutes since midnight) ─────────────────────────
 const toMin = (h: number, m = 0) => h * 60 + m;
@@ -55,7 +56,8 @@ export function AttendanceWidget({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const [, tick] = useState(0);
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = format(today, "yyyy-MM-dd");
+  const [busy, setBusy] = useState(false);
   const isFriday = today.getDay() === 5; // Friday is day 5
 
   // Re-render every 30 s so window checks stay live
@@ -86,39 +88,30 @@ export function AttendanceWidget({ userId }: { userId: string }) {
   const canCheckOut  = mn >= CHECK_OUT_START;
   const missedWindow = !hasCheckedIn && mn > CHECK_IN_END;
 
-  const handleCheckIn = async () => {
+  const run = async (op: () => PromiseLike<{ error: { message: string } | null }>) => {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await op();
+    setBusy(false);
+    if (error) toast.error(error.message);
+    invalidate();
+  };
+
+  const stamp = (field: keyof AttendanceRow) => run(() =>
+    (supabase as any).from("attendance").update({ [field]: new Date().toISOString() }).eq("id", rec!.id));
+
+  const handleCheckIn = () => {
     if (!canCheckIn) return;
-    await (supabase as any).from("attendance").insert({
+    return run(() => (supabase as any).from("attendance").insert({
       user_id: userId,
       attendance_date: todayStr,
       check_in_time: new Date().toISOString(),
-    });
-    invalidate();
+    }));
   };
 
-  const handleBreakOut = async () => {
-    if (!rec || !canBreakOut || hasBrokenOut) return;
-    await (supabase as any).from("attendance")
-      .update({ break_out_time: new Date().toISOString() })
-      .eq("id", rec.id);
-    invalidate();
-  };
-
-  const handleBreakIn = async () => {
-    if (!rec || !canBreakIn || hasBrokenIn) return;
-    await (supabase as any).from("attendance")
-      .update({ break_in_time: new Date().toISOString() })
-      .eq("id", rec.id);
-    invalidate();
-  };
-
-  const handleCheckOut = async () => {
-    if (!rec || !canCheckOut || hasCheckedOut) return;
-    await (supabase as any).from("attendance")
-      .update({ check_out_time: new Date().toISOString() })
-      .eq("id", rec.id);
-    invalidate();
-  };
+  const handleBreakOut = () => { if (rec && canBreakOut && !hasBrokenOut) return stamp("break_out_time"); };
+  const handleBreakIn  = () => { if (rec && canBreakIn && !hasBrokenIn) return stamp("break_in_time"); };
+  const handleCheckOut = () => { if (rec && canCheckOut && !hasCheckedOut) return stamp("check_out_time"); };
 
   if (isLoading) {
     return (
@@ -191,6 +184,7 @@ export function AttendanceWidget({ userId }: { userId: string }) {
             label="Check In"
             sublabel="Window: 7:00 AM onwards"
             onClick={handleCheckIn}
+            disabled={busy}
             color="primary"
           />
         )}
@@ -217,6 +211,7 @@ export function AttendanceWidget({ userId }: { userId: string }) {
             label="Break Out"
             sublabel="Lunch break — click to start"
             onClick={handleBreakOut}
+            disabled={busy}
             color="amber"
           />
         )}
@@ -242,6 +237,7 @@ export function AttendanceWidget({ userId }: { userId: string }) {
             label="Break In"
             sublabel="Window: 12:00 – 1:00 PM"
             onClick={handleBreakIn}
+            disabled={busy}
             color="blue"
           />
         )}
@@ -268,6 +264,7 @@ export function AttendanceWidget({ userId }: { userId: string }) {
             label="Check Out"
             sublabel="End of day — click to check out"
             onClick={handleCheckOut}
+            disabled={busy}
             color="primary"
           />
         )}
@@ -321,10 +318,11 @@ function InfoRow({ icon, label, color }: {
   );
 }
 
-function ActionButton({ icon, label, sublabel, onClick, color }: {
+function ActionButton({ icon, label, sublabel, onClick, color, disabled }: {
   icon: React.ReactNode; label: string; sublabel: string;
   onClick: () => void;
   color: "primary" | "amber" | "blue";
+  disabled?: boolean;
 }) {
   const cls = {
     primary: "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -334,8 +332,10 @@ function ActionButton({ icon, label, sublabel, onClick, color }: {
 
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`w-full rounded-lg px-4 py-3 sm:py-2.5 flex items-center gap-3 transition-colors ${cls}`}
+      disabled={disabled}
+      className={`w-full rounded-lg px-4 py-3 sm:py-2.5 flex items-center gap-3 transition-colors disabled:opacity-60 disabled:cursor-wait ${cls}`}
     >
       {icon}
       <div className="text-left flex-1">

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 import { Users, Clock, Coffee, LogOut, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -126,14 +126,8 @@ const [date, setDate] = useState(todayStr);
     return <Navigate to="/calendar" />;
   }
 
-  const prevDay = () => {
-    const d = new Date(date); d.setDate(d.getDate() - 1);
-    setDate(d.toISOString().slice(0, 10));
-  };
-  const nextDay = () => {
-    const d = new Date(date); d.setDate(d.getDate() + 1);
-    setDate(d.toISOString().slice(0, 10));
-  };
+  const prevDay = () => setDate(format(addDays(parseISO(date), -1), "yyyy-MM-dd"));
+  const nextDay = () => setDate(format(addDays(parseISO(date), 1), "yyyy-MM-dd"));
   const isToday = date === format(new Date(), "yyyy-MM-dd");
 
   // Summary counts
