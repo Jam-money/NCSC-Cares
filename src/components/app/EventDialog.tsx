@@ -57,53 +57,6 @@ async function notifyAdmins(title: string, body: string, link = "/calendar") {
   await (supabase.rpc as any)("notify_role", { p_role: "admin", p_title: title, p_body: body, p_link: link });
 }
 
-// Push an admin/director-created or edited event into msoraf_rows.
-// Upserts on (source_event_id, user_id) so edits update the existing row
-// instead of creating duplicates.
-async function syncToMsoraf(ev: {
-  id: string; title: string; description: string | null; notes: string | null;
-  location: string | null; start_time: string; end_time: string;
-}, userId: string) {
-  const payload = {
-    source_event_id: ev.id,
-    user_id:    userId,
-    date_label: format(parseISO(ev.start_time), "dd (EEE)"),
-    date_sort:  format(parseISO(ev.start_time), "yyyy-MM-dd"),
-    activity:   ev.title,
-    objective:  ev.description ?? "",
-    event_time: `${format(parseISO(ev.start_time), "h:mma")}-${format(parseISO(ev.end_time), "h:mma")}`,
-    departure:  "N/A",
-    arrival:    "N/A",
-    venue:      ev.location ?? "N/A",
-    remarks:    ev.notes ?? "",
-  };
-
-  // Check if row exists first, then update or insert
-  const { data: existing } = await (supabase.from("msoraf_rows" as any)
-    .select("id")
-    .eq("source_event_id", ev.id)
-    .eq("user_id", userId)
-    .maybeSingle());
-
-  let error;
-  if (existing) {
-    const res = await (supabase.from("msoraf_rows" as any)
-      .update(payload)
-      .eq("id", (existing as any).id));
-    error = res.error;
-  } else {
-    const res = await (supabase.from("msoraf_rows" as any)
-      .insert(payload));
-    error = res.error;
-  }
-
-  if (error) {
-    // Don't block the calendar save flow on a MSORAF sync failure —
-    // just surface a quiet warning so admin knows to check it manually.
-    toast.warning("Event saved, but MSORAF sync failed: " + error.message);
-  }
-}
-
 // ── Attendee multi-select (dept pills + expandable staff dropdown) ──────────
 function AttendeeSelect({
   value, onChange, disabled,
@@ -462,12 +415,6 @@ export function EventDialog({
       );
     } else if (event) {
       await (supabase as any).from("event_reports").delete().eq("event_id", res.data.id);
-    }
-
-    // Auto-sync into MSORAF — only when the saver is admin or director.
-    // Staff-created/edited events are never written to msoraf_rows.
-    if ((role === "admin" || role === "director") && user) {
-      await syncToMsoraf(res.data, user.id);
     }
 
     await logAudit("event", res.data.id, event ? "updated" : "created", { title });

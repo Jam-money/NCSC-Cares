@@ -4,8 +4,8 @@ import { useTheme } from "@/lib/theme";
 import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard, Calendar, Users2, Bell, FileBarChart2,
-  UserCircle2, LogOut, Sun, Moon, Menu, X, CalendarCheck2, CheckCheck, ClipboardList,
-  ShieldCheck, ClipboardCheck,
+  UserCircle2, LogOut, Sun, Moon, Menu, X, CheckCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,8 +21,6 @@ const NAV = [
   { to: "/meetings",      label: "Meetings",       icon: Users2,          restricted: false, adminOnly: false },
   { to: "/notifications", label: "Notifications",  icon: Bell,            restricted: false, adminOnly: false },
   { to: "/reports",       label: "Reports",        icon: FileBarChart2,   restricted: false, adminOnly: false },
-  { to: "/attendance",    label: "Attendance",     icon: ClipboardCheck,  restricted: false, adminOnly: true  },
-  { to: "/msoraf",        label: "MSORAF",         icon: ClipboardList,   restricted: true,  adminOnly: false },
   { to: "/manage-units",  label: "Manage Units",   icon: ShieldCheck,     restricted: false, adminOnly: true  },
   { to: "/profile",       label: "Profile",        icon: UserCircle2,     restricted: false, adminOnly: false },
 ] as const;
@@ -38,11 +36,8 @@ export function Shell() {
   const [notifItems, setNotifItems] = useState<any[]>([]);
   const bellRef = useRef<HTMLDivElement>(null);
 
-  // Only admin and director can see MSORAF
-  const canAccessMsoraf = role === "admin" || role === "director";
   const isAdmin = role === "admin";
   const filteredNav = NAV.filter(item => {
-    if (item.restricted && !canAccessMsoraf) return false;
     if (item.adminOnly && !isAdmin) return false;
     return true;
   });
@@ -91,12 +86,18 @@ export function Shell() {
     <div className="min-h-screen bg-background">
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="h-16 flex items-center justify-between px-5 border-b border-sidebar-border">
-          <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
-            <span className="grid place-items-center h-8 w-8 rounded-lg bg-primary text-primary-foreground"><CalendarCheck2 className="h-4 w-4"/></span>
-            PSA GovTrack
+        <div className="relative flex items-center justify-between px-5 py-5 border-b border-sidebar-border overflow-hidden">
+          <div className="pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/5" />
+          <Link to="/dashboard" className="group relative flex items-center gap-3">
+            <span className="grid place-items-center h-11 w-11 rounded-full bg-white p-0.5 shadow-lg ring-2 ring-white/20 transition-transform duration-300 group-hover:rotate-[360deg] group-hover:scale-105">
+              <img src="/ncsc-logo.png" alt="NCSC" className="h-full w-full" draggable={false} />
+            </span>
+            <span className="leading-tight">
+              <span className="block text-lg font-bold tracking-[0.18em]">CARES</span>
+              <span className="block text-[10px] uppercase tracking-wider text-sidebar-foreground/60">NCSC</span>
+            </span>
           </Link>
-          <button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Close menu"><X className="h-5 w-5"/></button>
+          <button className="lg:hidden relative" onClick={() => setOpen(false)} aria-label="Close menu"><X className="h-5 w-5"/></button>
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -104,11 +105,12 @@ export function Shell() {
             const active = loc.pathname.startsWith(to);
             return (
               <Link key={to} to={to}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/60"}`}>
-                <Icon className="h-4 w-4" />
+                className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm" : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:translate-x-1"}`}>
+                <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-[var(--brand-red)] transition-all duration-200 ${active ? "opacity-100" : "opacity-0 scale-y-0"}`} />
+                <Icon className={`h-4 w-4 transition-transform duration-200 group-hover:scale-110 ${active ? "text-white" : ""}`} />
                 <span className="flex-1">{label}</span>
                 {to === "/notifications" && unread > 0 && (
-                  <Badge variant="secondary" className="bg-primary text-primary-foreground border-0">{unread}</Badge>
+                  <Badge variant="secondary" className="bg-[var(--brand-red)] text-white border-0 animate-pulse">{unread}</Badge>
                 )}
               </Link>
             );
@@ -116,8 +118,8 @@ export function Shell() {
         </nav>
 
         <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-2 px-2 py-2 rounded-lg">
-            <Avatar className="h-8 w-8 shrink-0">
+          <div className="flex items-center gap-2 px-2 py-2 rounded-xl bg-sidebar-accent/40">
+            <Avatar className="h-9 w-9 shrink-0 ring-2 ring-white/20">
               <AvatarImage src={(profile as any)?.avatar_url ?? undefined} alt={profile?.full_name ?? "User"} />
               <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-xs">{initials}</AvatarFallback>
             </Avatar>
@@ -132,7 +134,7 @@ export function Shell() {
             </div>
             <button
               onClick={async () => { await signOut(); navigate({ to: "/login" }); }}
-              className="p-2 hover:bg-sidebar-accent rounded-md shrink-0"
+              className="p-2 hover:bg-[var(--brand-red)] hover:text-white rounded-md shrink-0 transition-colors"
               aria-label="Sign out"
             >
               <LogOut className="h-4 w-4"/>
@@ -145,9 +147,13 @@ export function Shell() {
 
       {/* Main */}
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 h-16 flex items-center gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur border-b border-border">
+        <header className="sticky top-0 z-20 h-16 flex items-center gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur-md border-b border-border shadow-[0_1px_0_0_color-mix(in_oklab,var(--brand-red)_25%,transparent)]">
           <button className="lg:hidden p-2 -ml-2" onClick={() => setOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5"/></button>
-          <div className="flex-1" />
+          <div className="flex-1 hidden sm:block">
+            <div className="text-sm font-semibold capitalize leading-tight">{loc.pathname.split("/")[1]?.replace(/-/g, " ") || "dashboard"}</div>
+            <div className="text-xs text-muted-foreground">{format(new Date(), "EEEE, MMMM d, yyyy")}</div>
+          </div>
+          <div className="flex-1 sm:hidden" />
           <InstallButton className="hidden sm:inline-flex" />
           <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-4 w-4"/> : <Moon className="h-4 w-4"/>}
@@ -155,7 +161,7 @@ export function Shell() {
           <div ref={bellRef} className="relative">
             <button
               onClick={() => setNotifOpen(v => !v)}
-              className="relative p-2 rounded-md hover:bg-muted"
+              className="relative p-2 rounded-full hover:bg-muted transition-colors"
               aria-label="Notifications">
               <Bell className={`h-5 w-5 transition-transform ${unread > 0 ? "animate-ring" : ""}`}/>
               {unread > 0 && (
@@ -207,7 +213,7 @@ export function Shell() {
             )}
           </div>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8 animate-fade-in-up"><Outlet /></main>
+        <main key={loc.pathname} className="p-4 sm:p-6 lg:p-8 animate-fade-in-up"><Outlet /></main>
       </div>
     </div>
   );

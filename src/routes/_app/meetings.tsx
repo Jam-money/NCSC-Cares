@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, MapPin, Clock, Search } from "lucide-react";
+import { Plus, MapPin, Clock, Search, Users2 } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { format, parseISO, isPast, endOfWeek } from "date-fns";
 import { EventDialog } from "@/components/app/EventDialog";
 import { useAuth } from "@/lib/auth";
@@ -41,22 +42,18 @@ function Meetings() {
 
   return (
     <div className="space-y-6 max-w-5xl w-full">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Meetings & schedule</h1>
-          <p className="text-sm text-muted-foreground">Your agenda and upcoming meetings</p>
-        </div>
-        {canEdit && <Button onClick={()=>{setEditing(null); setOpen(true);}} className="w-full sm:w-auto"><Plus className="h-4 w-4 mr-1"/>Schedule</Button>}
-      </div>
+      <PageHeader icon={Users2} title="Meetings & schedule" subtitle="Your agenda and upcoming meetings">
+        {canEdit && <Button onClick={()=>{setEditing(null); setOpen(true);}} className="w-full sm:w-auto shadow-md hover:-translate-y-0.5 transition-all"><Plus className="h-4 w-4 mr-1"/>Schedule</Button>}
+      </PageHeader>
 
       <div className="relative max-w-md w-full">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-        <Input placeholder="Search meetings…" value={q} onChange={e=>setQ(e.target.value)} className="pl-9"/>
+        <Input placeholder="Search meetings…" value={q} onChange={e=>setQ(e.target.value)} className="pl-9 rounded-full bg-card"/>
       </div>
 
       <section>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Today & this week · {thisWeek.length}</h2>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="stagger grid grid-cols-1 gap-3">
           {thisWeek.map(ev => <MeetingCard key={ev.id} ev={ev} onClick={()=>openEvent(ev)}/>)}
           {thisWeek.length === 0 && <p className="text-sm text-muted-foreground">No meetings today or this week.</p>}
         </div>
@@ -82,9 +79,10 @@ function Meetings() {
 
 function MeetingCard({ ev, onClick, muted }: { ev: EventRow; onClick: () => void; muted?: boolean }) {
   return (
-    <Card onClick={onClick} className={`p-4 cursor-pointer hover:shadow-elevated transition-all shadow-soft ${muted ? "opacity-70" : ""}`}>
+    <Card onClick={onClick} className={`group relative overflow-hidden p-4 pl-5 cursor-pointer card-lift ${muted ? "opacity-70" : ""}`}>
+      <span className={`absolute left-0 inset-y-0 w-1 ${muted ? "bg-muted-foreground/40" : "bg-gradient-to-b from-primary to-[var(--brand-red)]"}`} />
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-medium">{ev.title}</h3>
+        <h3 className="font-semibold group-hover:text-primary transition-colors">{ev.title}</h3>
         <Badge variant="outline" className="shrink-0">{eventTypeLabel(ev as any)}</Badge>
       </div>
       <div className="mt-2 space-y-1 text-xs text-muted-foreground">

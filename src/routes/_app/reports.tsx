@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Search, CalendarDays, Clock } from "lucide-react";
+import { Search, CalendarDays, Clock, FileBarChart2 } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { toast } from "sonner";
 import type { EventRow } from "@/lib/db";
@@ -96,17 +97,16 @@ function Reports() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="mr-auto"><h1 className="text-2xl font-semibold">Reports & history</h1><p className="text-sm text-muted-foreground">Track reports and deadlines.</p></div>
+      <PageHeader icon={FileBarChart2} title="Reports & history" subtitle="Track reports and deadlines.">
         <div className="relative w-56">
           <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search reports..."
-            className="w-full border border-border rounded pl-8 pr-2 py-1.5 bg-background text-sm" />
+            className="w-full border border-border rounded-full pl-8 pr-3 py-1.5 bg-card text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/40" />
         </div>
         <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)} title="Filter by deadline date"
-          className="border border-border rounded px-2 py-1.5 bg-background text-sm" />
+          className="border border-border rounded-full px-3 py-1.5 bg-card text-sm outline-none transition-shadow focus:ring-2 focus:ring-primary/40" />
         {filtering && <Button variant="ghost" size="sm" onClick={() => { setQ(""); setDateFilter(""); }}>Clear</Button>}
-      </div>
+      </PageHeader>
 
       <div className="space-y-4">
         <div>
@@ -130,7 +130,7 @@ function Reports() {
           const cd = countdown(r?.deadline, allDone);
           const isOwner = !!user && e.created_by === user.id;
           return (
-            <Card key={e.id} className="p-5 shadow-soft space-y-4">
+            <Card key={e.id} className="p-5 space-y-4 card-lift">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
@@ -160,7 +160,7 @@ function Reports() {
                 {assignees.length > 0 && (
                   <div className="flex items-center gap-2 flex-1 min-w-[180px]">
                     <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-700" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-xs text-muted-foreground whitespace-nowrap">{approved}/{assignees.length} approved</span>
                   </div>

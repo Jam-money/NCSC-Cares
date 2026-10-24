@@ -16,12 +16,10 @@ import { Route as AppTasksRouteImport } from './routes/_app/tasks'
 import { Route as AppReportsRouteImport } from './routes/_app/reports'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppNotificationsRouteImport } from './routes/_app/notifications'
-import { Route as AppMsorafRouteImport } from './routes/_app/msoraf'
 import { Route as AppMeetingsRouteImport } from './routes/_app/meetings'
 import { Route as AppManageUnitsRouteImport } from './routes/_app/manage-units'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
-import { Route as AppAttendanceRouteImport } from './routes/_app/attendance'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -57,11 +55,6 @@ const AppNotificationsRoute = AppNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => AppRoute,
 } as any)
-const AppMsorafRoute = AppMsorafRouteImport.update({
-  id: '/msoraf',
-  path: '/msoraf',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppMeetingsRoute = AppMeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
@@ -82,21 +75,14 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAttendanceRoute = AppAttendanceRouteImport.update({
-  id: '/attendance',
-  path: '/attendance',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/attendance': typeof AppAttendanceRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/manage-units': typeof AppManageUnitsRoute
   '/meetings': typeof AppMeetingsRoute
-  '/msoraf': typeof AppMsorafRoute
   '/notifications': typeof AppNotificationsRoute
   '/profile': typeof AppProfileRoute
   '/reports': typeof AppReportsRoute
@@ -105,12 +91,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/attendance': typeof AppAttendanceRoute
   '/calendar': typeof AppCalendarRoute
   '/dashboard': typeof AppDashboardRoute
   '/manage-units': typeof AppManageUnitsRoute
   '/meetings': typeof AppMeetingsRoute
-  '/msoraf': typeof AppMsorafRoute
   '/notifications': typeof AppNotificationsRoute
   '/profile': typeof AppProfileRoute
   '/reports': typeof AppReportsRoute
@@ -121,12 +105,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/attendance': typeof AppAttendanceRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/manage-units': typeof AppManageUnitsRoute
   '/_app/meetings': typeof AppMeetingsRoute
-  '/_app/msoraf': typeof AppMsorafRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/reports': typeof AppReportsRoute
@@ -137,12 +119,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/attendance'
     | '/calendar'
     | '/dashboard'
     | '/manage-units'
     | '/meetings'
-    | '/msoraf'
     | '/notifications'
     | '/profile'
     | '/reports'
@@ -151,12 +131,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/attendance'
     | '/calendar'
     | '/dashboard'
     | '/manage-units'
     | '/meetings'
-    | '/msoraf'
     | '/notifications'
     | '/profile'
     | '/reports'
@@ -166,12 +144,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
-    | '/_app/attendance'
     | '/_app/calendar'
     | '/_app/dashboard'
     | '/_app/manage-units'
     | '/_app/meetings'
-    | '/_app/msoraf'
     | '/_app/notifications'
     | '/_app/profile'
     | '/_app/reports'
@@ -235,13 +211,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotificationsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/msoraf': {
-      id: '/_app/msoraf'
-      path: '/msoraf'
-      fullPath: '/msoraf'
-      preLoaderRoute: typeof AppMsorafRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/meetings': {
       id: '/_app/meetings'
       path: '/meetings'
@@ -270,23 +239,14 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/attendance': {
-      id: '/_app/attendance'
-      path: '/attendance'
-      fullPath: '/attendance'
-      preLoaderRoute: typeof AppAttendanceRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
 interface AppRouteChildren {
-  AppAttendanceRoute: typeof AppAttendanceRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppManageUnitsRoute: typeof AppManageUnitsRoute
   AppMeetingsRoute: typeof AppMeetingsRoute
-  AppMsorafRoute: typeof AppMsorafRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
@@ -294,12 +254,10 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAttendanceRoute: AppAttendanceRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppManageUnitsRoute: AppManageUnitsRoute,
   AppMeetingsRoute: AppMeetingsRoute,
-  AppMsorafRoute: AppMsorafRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,

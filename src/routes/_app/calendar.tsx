@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, ChevronRight, Plus, MessageSquare, Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, MessageSquare, Video, CalendarDays, X } from "lucide-react";
 import {
   addDays, addMonths, addWeeks, eachDayOfInterval,
   endOfMonth, endOfWeek, format, isSameDay, isSameMonth,
@@ -108,18 +108,30 @@ const DATE_H      = 30;
 const PADDING     = 8;
 const MAX_VISIBLE = 3;
 
-function AttendeeLegend() {
+function AttendeeLegend({ active, onToggle, onClear }: { active: string[]; onToggle: (v: string) => void; onClear: () => void }) {
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-xs text-muted-foreground font-medium">Attendees:</span>
-      {ATTENDEES.map(a => (
-        <span key={a.value} className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full text-white" style={{ background: a.hex }}>
-          <span className="h-1.5 w-1.5 rounded-full bg-white/60 inline-block" />{a.label}
-        </span>
-      ))}
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full text-white bg-slate-400">
+    <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card/60 px-3 py-2">
+      <span className="text-xs text-muted-foreground font-medium">Filter by attendee:</span>
+      {ATTENDEES.map(a => {
+        const on = active.includes(a.value);
+        const dim = active.length > 0 && !on;
+        return (
+          <button key={a.value} type="button" onClick={() => onToggle(a.value)}
+            className={["inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-white transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95",
+              on ? "ring-2 ring-offset-2 ring-offset-background ring-white/70 shadow-md" : "", dim ? "opacity-35" : ""].join(" ")}
+            style={{ background: a.hex }}>
+            <span className="h-1.5 w-1.5 rounded-full bg-white/70 inline-block" />{a.label}
+          </button>
+        );
+      })}
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-white bg-slate-400">
         <span className="h-1.5 w-1.5 rounded-full bg-white/60 inline-block" />All declined
       </span>
+      {active.length > 0 && (
+        <button type="button" onClick={onClear} className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <X className="h-3 w-3" /> Clear
+        </button>
+      )}
     </div>
   );
 }
@@ -134,7 +146,8 @@ export function CalendarPage() {
 
   const [view, setView]               = useState<View>("month");
   const [cursor, setCursor]           = useState(new Date());
-  const [events, setEvents]           = useState<EventRow[]>([]);
+  const [allEvents, setEvents]        = useState<EventRow[]>([]);
+  const [filter, setFilter]           = useState<string[]>([]);
   const [dialogOpen, setDialogOpen]   = useState(false);
   const [editing, setEditing]         = useState<EventRow | null>(null);
   const [defaultDate, setDefaultDate] = useState<Date | undefined>();
@@ -160,6 +173,12 @@ export function CalendarPage() {
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
   }, [isAdmin, isDirector, myUnit, myUserId, profile?.email, profile?.full_name, user?.email]);
+
+  const events = useMemo(
+    () => filter.length === 0 ? allEvents : allEvents.filter(ev => getAttendees(ev).some(a => filter.includes(a))),
+    [allEvents, filter],
+  );
+  const toggleFilter = (v: string) => setFilter(f => f.includes(v) ? f.filter(x => x !== v) : [...f, v]);
 
   const days = useMemo(() => {
     if (view === "month") return eachDayOfInterval({ start: startOfWeek(startOfMonth(cursor)), end: endOfWeek(endOfMonth(cursor)) });
@@ -198,14 +217,30 @@ export function CalendarPage() {
       openEdit(ev);
       void notifNav({ to: "/calendar", replace: true });
     };
-    const found = events.find(e => e.id === id);
+    const found = allEvents.find(e => e.id === id);
     if (found) open(found);
     else void supabase.from("events").select("*").eq("id", id).maybeSingle()
       .then(({ data }) => { if (data) open(data as EventRow); });
-  }, [searchOpen, openedFromNotif, events]);
+  }, [searchOpen, openedFromNotif, allEvents]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (dialogOpen || (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) || t?.isContentEditable) return;
+      if (e.key === "ArrowLeft") nav(-1);
+      else if (e.key === "ArrowRight") nav(1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const monthCount = useMemo(
+    () => events.filter(ev => isSameMonth(parseISO(ev.start_time), cursor)).length,
+    [events, cursor],
+  );
 
   const onDrop = async (id: string, target: Date) => {
-    const ev = events.find(e => e.id === id); if (!ev || !canEditEv(ev)) return;
+    const ev = allEvents.find(e => e.id === id); if (!ev || !canEditEv(ev)) return;
     const s = parseISO(ev.start_time), e = parseISO(ev.end_time);
     const duration = e.getTime() - s.getTime();
     const ns = new Date(target); ns.setHours(s.getHours(), s.getMinutes());
@@ -217,9 +252,13 @@ export function CalendarPage() {
     <div className="space-y-4 max-w-7xl w-full">
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Calendar</h1>
-          <p className="text-sm text-muted-foreground">
-            {format(cursor, view === "day" ? "EEEE, MMM d, yyyy" : "MMMM yyyy")}
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl gradient-primary text-white shadow-md"><CalendarDays className="h-5 w-5" /></span>
+            Calendar
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            <span key={cursor.toISOString().slice(0, 7) + view} className="font-medium text-foreground animate-fade-in-up inline-block">{format(cursor, view === "day" ? "EEEE, MMM d, yyyy" : "MMMM yyyy")}</span>
+            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{monthCount} event{monthCount === 1 ? "" : "s"} this month</span>
             {!isAdmin && myUnit && <span className="ml-2 text-xs font-medium uppercase tracking-wide text-primary">· {myUnit}</span>}
           </p>
         </div>
@@ -232,23 +271,23 @@ export function CalendarPage() {
             </TabsList>
           </Tabs>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" onClick={() => nav(-1)}><ChevronLeft className="h-4 w-4"/></Button>
+            <Button variant="outline" size="icon" className="transition-transform hover:-translate-x-0.5" onClick={() => nav(-1)}><ChevronLeft className="h-4 w-4"/></Button>
             <Button variant="outline" size="sm"   onClick={() => setCursor(new Date())}>Today</Button>
-            <Button variant="outline" size="icon" onClick={() => nav(1)}><ChevronRight className="h-4 w-4"/></Button>
+            <Button variant="outline" size="icon" className="transition-transform hover:translate-x-0.5" onClick={() => nav(1)}><ChevronRight className="h-4 w-4"/></Button>
           </div>
-          {canEdit && <Button onClick={() => openNew()} className="w-full sm:w-auto"><Plus className="h-4 w-4 mr-1"/>New event</Button>}
+          {canEdit && <Button onClick={() => openNew()} className="w-full sm:w-auto shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"><Plus className="h-4 w-4 mr-1"/>New event</Button>}
         </div>
       </div>
 
-      <AttendeeLegend />
+      <AttendeeLegend active={filter} onToggle={toggleFilter} onClear={() => setFilter([])} />
 
-      <Card className="shadow-soft overflow-hidden">
+      <Card className="shadow-soft overflow-hidden rounded-2xl border-border/70">
 
         {view === "month" && (
           <>
-            <div className="grid grid-cols-7 bg-muted/50 text-xs font-medium text-muted-foreground border-b border-border">
-              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => (
-                <div key={d} className="px-2 py-2 text-center">{d}</div>
+            <div className="grid grid-cols-7 bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border">
+              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => (
+                <div key={d} className={["px-2 py-2.5 text-center", i === 0 || i === 6 ? "text-primary/70" : ""].join(" ")}>{d}</div>
               ))}
             </div>
 
@@ -259,7 +298,7 @@ export function CalendarPage() {
               const rowH = Math.max(110, DATE_H + visibleLanes * LANE_H + (hasOverflow ? LANE_H : 0) + PADDING);
 
               return (
-                <div key={rowIdx} className="relative grid grid-cols-7 border-t border-border" style={{ height: rowH }}>
+                <div key={`${cursor.getMonth()}-${rowIdx}`} className="relative grid grid-cols-7 border-t border-border animate-fade-in-up" style={{ height: rowH, animationDelay: `${rowIdx * 40}ms`, animationFillMode: "backwards" }}>
 
                   {week.map(d => {
                     const inMonth = isSameMonth(d, cursor);
@@ -270,17 +309,22 @@ export function CalendarPage() {
                         onDrop={canEdit ? e => { const id = e.dataTransfer.getData("text/plain"); void onDrop(id, d); } : undefined}
                         onClick={() => canEdit && openNew(d)}
                         className={[
-                          "h-full border-r border-border last:border-r-0 pt-1 px-1",
-                          canEdit ? "cursor-pointer hover:bg-muted/30 transition-colors" : "",
-                          inMonth ? "bg-background" : "bg-muted/15",
+                          "group relative h-full border-r border-border last:border-r-0 pt-1.5 px-1.5 transition-colors duration-200",
+                          canEdit ? "cursor-pointer hover:bg-primary/5" : "",
+                          today ? "bg-primary/10" : inMonth ? (d.getDay() === 0 || d.getDay() === 6 ? "bg-muted/20" : "bg-background") : "bg-muted/30 opacity-60",
                         ].join(" ")}
                       >
                         <div className={[
-                          "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                          today ? "bg-primary text-primary-foreground" : inMonth ? "text-foreground" : "text-muted-foreground",
+                          "inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold transition-transform group-hover:scale-110",
+                          today ? "bg-primary text-primary-foreground shadow-md ring-4 ring-primary/20" : inMonth ? "text-foreground" : "text-muted-foreground",
                         ].join(" ")}>
                           {format(d, "d")}
                         </div>
+                        {canEdit && (
+                          <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-primary/10 text-primary opacity-0 scale-75 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
+                            <Plus className="h-3 w-3" />
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -297,8 +341,8 @@ export function CalendarPage() {
                     const rdNote    = getRsvpNotes(p.ev)["RD"];
                     const hasLink   = !!(p.ev as any).meeting_link;
 
-                    const rl = p.isStart ? "4px" : "0px";
-                    const rr = p.isEnd   ? "4px" : "0px";
+                    const rl = p.isStart ? "6px" : "0px";
+                    const rr = p.isEnd   ? "6px" : "0px";
 
                     return (
                       <div key={`${p.ev.id}-${i}`}
@@ -321,7 +365,7 @@ export function CalendarPage() {
                         className={[
                           "flex items-center gap-1 px-1.5 overflow-hidden",
                           "text-[11px] font-medium border border-black/10",
-                          "hover:brightness-90 transition-all text-white",
+                          "shadow-sm hover:shadow-md hover:brightness-110 hover:-translate-y-px transition-all duration-150 text-white",
                           canEdit ? "cursor-pointer" : "cursor-default",
                         ].join(" ")}
                       >

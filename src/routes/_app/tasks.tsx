@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Calendar as CalIcon, User2 } from "lucide-react";
+import { Plus, Search, Calendar as CalIcon, User2, ListChecks } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { format, parseISO } from "date-fns";
 import { TaskDialog } from "@/components/app/TaskDialog";
 import { useAuth } from "@/lib/auth";
@@ -64,13 +65,9 @@ function TasksPage() {
 
   return (
     <div className="space-y-4 max-w-7xl">
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Tasks</h1>
-          <p className="text-sm text-muted-foreground">Drag cards across columns to update status.</p>
-        </div>
+      <PageHeader icon={ListChecks} title="Tasks" subtitle="Drag cards across columns to update status.">
         {isAdmin && <Button onClick={()=>{setEditing(null); setDialogOpen(true);}}><Plus className="h-4 w-4 mr-1"/>New task</Button>}
-      </div>
+      </PageHeader>
 
       <Card className="p-3 flex flex-wrap gap-2 items-center shadow-soft">
         <div className="relative flex-1 min-w-[200px]">

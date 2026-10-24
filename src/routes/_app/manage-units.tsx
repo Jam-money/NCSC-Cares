@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { UserPlus, Pencil } from "lucide-react";
+import { UserPlus, Pencil, ShieldCheck } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 import { enrollUser } from "@/lib/enroll-user.functions";
 
 export const Route = createFileRoute("/_app/manage-units")({ component: ManageUnitsPage });
@@ -138,15 +139,9 @@ function ManageUnitsPage() {
 
   return (
     <div className="space-y-4 w-full max-w-7xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Manage Units</h1>
-          <p className="text-sm text-muted-foreground">
-            Assign each user to CRASD, SOCD or ORD. Users only see calendar events from their own unit.
-          </p>
-        </div>
-        <Button onClick={() => setEnrollOpen(true)}><UserPlus className="h-4 w-4 mr-1.5" />Enroll user</Button>
-      </div>
+      <PageHeader icon={ShieldCheck} title="Manage Units" subtitle="Assign each user to CRASD, SOCD or ORD. Users only see calendar events from their own unit.">
+        <Button onClick={() => setEnrollOpen(true)} className="shadow-md hover:-translate-y-0.5 transition-all"><UserPlus className="h-4 w-4 mr-1.5" />Enroll user</Button>
+      </PageHeader>
 
       <Dialog open={!!editRow} onOpenChange={o => { if (!o) setEditRow(null); }}>
         <DialogContent className="max-w-md">

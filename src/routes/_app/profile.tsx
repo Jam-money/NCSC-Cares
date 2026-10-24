@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, UserCircle2 } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
 
 export const Route = createFileRoute("/_app/profile")({ component: Profile });
 
@@ -100,8 +101,8 @@ function Profile() {
 
   return (
     <div className="max-w-xl w-full mx-auto space-y-6">
-      <div><h1 className="text-2xl font-semibold">Profile settings</h1><p className="text-sm text-muted-foreground">Update your details.</p></div>
-      <Card className="p-4 sm:p-6 space-y-5 shadow-soft">
+      <PageHeader icon={UserCircle2} title="Profile settings" subtitle="Update your details." />
+      <Card className="p-4 sm:p-6 space-y-5">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
           <div className="relative shrink-0">
             <Avatar className="h-20 w-20 sm:h-24 sm:w-24">
