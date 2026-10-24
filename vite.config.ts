@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { loadEnv } from "vite";
 import { defineConfig } from "@lovable.dev/vite-tanstack-config/dist/index.js";
+import { nitro } from "nitro/vite";
 
 // Expose server-only secrets (e.g. SUPABASE_SERVICE_ROLE_KEY) to server functions in local dev.
 // Reads .env / .env.local and .dev.vars (all git-ignored except .env) into process.env.
@@ -15,13 +16,12 @@ if (existsSync(".dev.vars")) {
 }
 
 export default defineConfig({
+  cloudflare: false,
+  plugins: [nitro()],
   tanstackStart: {
-    server: { entry: "server", preset: "node" },
+    server: { entry: "server" },
   },
   vite: {
     publicDir: "public",
-    build: {
-      outDir: "dist/client",
-    },
   },
 });

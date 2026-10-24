@@ -36,3 +36,6 @@ dist-ssr
 
 # Raw original photos (use public/slides instead)
 public/assets/
+
+# Vercel
+.vercel
