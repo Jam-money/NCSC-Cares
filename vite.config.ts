@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import { loadEnv } from "vite";
-import { defineConfig } from "@lovable.dev/vite-tanstack-config/dist/index.js";
+import { defineConfig, loadEnv } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 
 // Expose server-only secrets (e.g. SUPABASE_SERVICE_ROLE_KEY) to server functions in local dev.
@@ -16,12 +18,19 @@ if (existsSync(".dev.vars")) {
 }
 
 export default defineConfig({
-  cloudflare: false,
-  plugins: [nitro()],
-  tanstackStart: {
-    server: { entry: "server" },
+  server: { host: "::", port: 8080 },
+  publicDir: "public",
+  resolve: {
+    alias: { "@": `${process.cwd()}/src` },
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
-  vite: {
-    publicDir: "public",
-  },
+  plugins: [
+    tailwindcss(),
+    tanstackStart({
+      server: { entry: "server" },
+      importProtection: { behavior: "error", client: { files: ["**/server/**"], specifiers: ["server-only"] } },
+    }),
+    nitro(),
+    viteReact(),
+  ],
 });
